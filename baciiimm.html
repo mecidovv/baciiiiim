@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bacım ❤️</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600;1,700&family=Playfair+Display:ital,wght@1,500;1,700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000;--ink:#ffe3ea;--rose:#ff8fa8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--ink:#ffe3ea;--rose:#ff8fa8}}
+:root[data-theme="dark"]{--bg:#000;--ink:#ffe3ea;--rose:#ff8fa8}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;font-family:"Playfair Display",Georgia,serif}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:6}
+#fin{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:3;background:radial-gradient(ellipse at 50% 40%,#2b0b17 0%,#0b0307 70%,#000 100%);padding:max(24px,env(safe-area-inset-top,0px)) 0 max(24px,env(safe-area-inset-bottom,0px));box-sizing:border-box}
+#frame{position:relative;opacity:0;transform:scale(.94);will-change:opacity,transform;display:flex;align-items:center;justify-content:center}
+#pic{display:none;width:min(86vw,520px);height:min(62vh,520px);object-fit:contain;border-radius:22px;filter:drop-shadow(0 22px 60px rgba(255,92,134,.45)) drop-shadow(0 4px 18px rgba(0,0,0,.55))}
+#ph{display:flex;width:min(70vw,360px);height:min(44vh,360px);border-radius:22px;align-items:center;justify-content:center;font-size:84px;color:var(--rose);background:rgba(255,143,168,.07);border:1px solid rgba(255,143,168,.25);text-shadow:0 0 40px rgba(255,92,134,.8)}
+#cap{margin:30px 0 0;padding:0 6vw;max-width:92vw;box-sizing:border-box;text-align:center;font-style:italic;font-weight:700;font-size:clamp(20px,5.8vw,34px);line-height:1.45;letter-spacing:.02em;overflow-wrap:anywhere;opacity:0;transform:translateY(10px);text-shadow:0 0 22px rgba(255,92,134,.55);font-family:"Cormorant Garamond","Playfair Display",Georgia,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif}
+#cap img{height:1.15em;width:1.15em;vertical-align:-.2em;margin:0 .04em}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="fin">
+  <div id="frame">
+    <img id="pic" alt="" referrerpolicy="no-referrer">
+    <div id="ph">♥</div>
+  </div>
+  <p id="cap"></p>
+</div>
+<div id="flash"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+var clamp=function(v,a,b){return Math.max(a,Math.min(b,v))};
+var sm=function(a,b,x){x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x)};
+var FONT='"Cormorant Garamond","Playfair Display",Georgia,serif';
+
+var cap=$('#cap');
+cap.appendChild(document.createTextNode('BACİMİİİİİİ COOOOOXXX SEVİREMMMM '));
+var apple=/iPhone|iPad|iPod|Macintosh|Mac OS/.test(navigator.userAgent);
+for(var k=0;k<5;k++){
+  if(apple){cap.appendChild(document.createTextNode('😛'));}
+  else{
+    var im=document.createElement('img');im.alt='😛';
+    im.src='https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f61b.png';
+    im.addEventListener('error',(function(el){return function(){el.replaceWith(document.createTextNode('😛'))}})(im));
+    cap.appendChild(im);
+  }
+}
+
+var pic=$('#pic'),ph=$('#ph');
+pic.addEventListener('load',function(){pic.style.display='block';ph.style.display='none'});
+pic.addEventListener('error',function(){pic.style.display='none';ph.style.display='flex'});
+pic.src='https://i.imgur.com/psS8lGL.jpeg';
+
+var renderer=new THREE.WebGLRenderer({canvas:$('#c'),antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0x000000);
+scene.fog=new THREE.Fog(0x000000,4,72);
+var cam=new THREE.PerspectiveCamera(62,1,0.05,220);
+cam.rotation.order='YXZ';
+
+var textBase=1.4,textLayers=[],cols=[],glow,white,tgroup,pts,ppos;
+var L=84,N=320;
+
+function colTex(){
+  var c=document.createElement('canvas');c.width=256;c.height=1440;
+  var x=c.getContext('2d');
+  x.font='italic 600 168px '+FONT;x.textAlign='center';x.textBaseline='middle';
+  x.fillStyle='#ffb3c4';x.shadowColor='#ff5c86';x.shadowBlur=28;
+  var s='BACİMİ';
+  for(var i=0;i<s.length;i++)x.fillText(s[i],128,124+i*238);
+  var t=new THREE.CanvasTexture(c);t.anisotropy=4;return t;
+}
+
+function mainTex(){
+  var c=document.createElement('canvas');c.width=2048;c.height=256;
+  var x=c.getContext('2d');
+  var s='Bacımı çox sevirəm',size=168;
+  x.textAlign='center';x.textBaseline='middle';
+  try{x.letterSpacing='4px'}catch(e){}
+  do{x.font='italic 500 '+size+'px '+FONT;size-=4}while(x.measureText(s).width>1760&&size>40);
+  var cx=1024,cy=128;
+  x.shadowColor='rgba(255,105,145,.75)';
+  for(var i=0;i<3;i++){
+    x.shadowBlur=76-i*20;
+    x.fillStyle='rgba(255,150,182,.09)';
+    x.fillText(s,cx,cy);
+  }
+  x.shadowBlur=26;x.shadowColor='rgba(255,130,165,.85)';
+  x.fillStyle='rgba(255,196,215,.42)';x.fillText(s,cx,cy);
+  x.shadowBlur=10;x.shadowColor='rgba(255,215,228,.9)';
+  x.fillStyle='rgba(255,243,247,.92)';x.fillText(s,cx,cy);
+  var t=new THREE.CanvasTexture(c);t.anisotropy=4;return t;
+}
+
+function radTex(r,g,b){
+  var c=document.createElement('canvas');c.width=c.height=256;
+  var x=c.getContext('2d'),gr=x.createRadialGradient(128,128,0,128,128,128);
+  gr.addColorStop(0,'rgba('+r+','+g+','+b+',1)');
+  gr.addColorStop(.35,'rgba('+r+','+g+','+b+',.45)');
+  gr.addColorStop(1,'rgba('+r+','+g+','+b+',0)');
+  x.fillStyle=gr;x.fillRect(0,0,256,256);
+  return new THREE.CanvasTexture(c);
+}
+
+function build(){
+  var ct=colTex(),cg=new THREE.PlaneGeometry(0.49,2.76);
+  for(var i=0;i<N;i++){
+    var m=new THREE.MeshBasicMaterial({map:ct,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
+    var mesh=new THREE.Mesh(cg,m);
+    var a=Math.random()*6.2832,r=2+Math.pow(Math.random(),1.25)*8;
+    var sc=.8+Math.random()*.7;
+    mesh.scale.set(sc,sc,1);
+    mesh.userData={x:Math.cos(a)*r,yb:Math.sin(a)*r,z:-1-(i/N)*L,fall:Math.random()*20,sp:.25+Math.random()*.6,o:.5+Math.random()*.5,p0:new THREE.Vector3()};
+    scene.add(mesh);cols.push(mesh);
+  }
+  var mt=mainTex();
+  tgroup=new THREE.Group();
+  for(var j=0;j<1;j++){
+    var lm=new THREE.MeshBasicMaterial({map:mt,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false,opacity:0});
+    if(j>0)lm.color.setHex(0xff3d70);
+    var lp=new THREE.Mesh(new THREE.PlaneGeometry(1,1/8),lm);
+    lp.position.z=-j*0.028;lp.renderOrder=2;
+    tgroup.add(lp);textLayers.push(lp);
+  }
+  scene.add(tgroup);
+  glow=new THREE.Sprite(new THREE.SpriteMaterial({map:radTex(255,70,120),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false,opacity:0}));
+  glow.scale.set(11,11,1);glow.renderOrder=1;scene.add(glow);
+  white=new THREE.Sprite(new THREE.SpriteMaterial({map:radTex(255,255,255),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false,opacity:0}));
+  white.renderOrder=3;scene.add(white);
+  var pn=320;ppos=new Float32Array(pn*3);
+  for(var p=0;p<pn;p++){ppos[p*3]=(Math.random()-.5)*20;ppos[p*3+1]=(Math.random()-.5)*20;ppos[p*3+2]=-Math.random()*60}
+  var pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(ppos,3));
+  pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0xffffff,size:.07,transparent:true,opacity:.65,depthWrite:false,fog:false}));
+  scene.add(pts);
+  resize();
+}
+
+function resize(){
+  var w=window.innerWidth,h=window.innerHeight;
+  renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();
+  var vh=2*3.4*Math.tan(31*Math.PI/180),vw=vh*cam.aspect;
+  textBase=Math.min(vw*.72,vh*3.6);
+}
+window.addEventListener('resize',resize);
+
+var t=0,last=0,gStart=false,gyaw=0,gpitch=0,dyaw=0,dpitch=0,myaw=0,mpitch=0,cy=0,cp=0,down=false,px=0,py=0,b0=null;
+
+function speed(t){
+  if(t<6)return 1.3+.25*t/6;
+  if(t<7.6)return 1.55+14.5*sm(6,7.6,t);
+  if(t<12.3)return 16;
+  if(t<13.5)return 16*(1-sm(12.3,13.5,t));
+  return 0;
+}
+function onOri(e){
+  if(e.gamma==null||e.beta==null)return;
+  if(b0===null)b0=e.beta;
+  gyaw=-clamp(e.gamma/40,-1,1)*.6;
+  gpitch=clamp((e.beta-b0)/40,-1,1)*.45;
+}
+window.addEventListener('pointerdown',function(e){down=true;px=e.clientX;py=e.clientY});
+window.addEventListener('pointerup',function(){down=false});
+window.addEventListener('pointercancel',function(){down=false});
+window.addEventListener('pointermove',function(e){
+  if(e.pointerType==='mouse'){myaw=-(e.clientX/window.innerWidth-.5)*.9;mpitch=-(e.clientY/window.innerHeight-.5)*.6;return}
+  if(!down)return;
+  dyaw=clamp(dyaw+(e.clientX-px)*.003,-.8,.8);dpitch=clamp(dpitch+(e.clientY-py)*.003,-.55,.55);
+  px=e.clientX;py=e.clientY;
+});
+
+var flash=$('#flash'),fin=$('#fin'),frame=$('#frame');
+
+function frameLoop(now){
+  requestAnimationFrame(frameLoop);
+  var dt=Math.min((now-last)/1000,.05);last=now;
+  t+=dt;
+
+  var camZ=cam.position.z;
+  camZ-=speed(t)*dt;
+  cam.position.z=camZ;
+
+  var d=3.4;
+  if(t<0.25){d=42;}
+  else{
+    var u=clamp((t-0.25)/12.05,0,1);
+    d=3.4+38.6*Math.pow(1-u,2.05);
+  }
+  var tz=camZ-d;
+
+  var tScale=0.50+0.50*sm(0.25,12.3,t);
+  tgroup.position.set(0,0,tz);
+  tgroup.scale.set(textBase*tScale,textBase*tScale,1);
+
+  var tAlpha=sm(0.25,5.5,t)*(1-sm(17.4,18.8,t));
+  for(var j=0;j<textLayers.length;j++){
+    textLayers[j].material.opacity=tAlpha*(j===0?0.95:0.3*(1-j/7));
+  }
+
+  glow.position.set(0,0,camZ-40);
+  var gs=textBase*tScale*7.0;
+  glow.scale.set(gs,gs,1);
+  glow.material.opacity=.85*sm(0.4,3.8,t)*(1-sm(12.8,14.6,t))*(1+.08*Math.sin(t*5));
+
+  var gp=0;
+  if(t>=13.6){
+    if(!gStart){gStart=true;for(var q=0;q<cols.length;q++)cols[q].userData.p0.copy(cols[q].position)}
+    var s=sm(13.6,16.2,t);gp=s*s*(3-2*s);
+  }
+  var target=new THREE.Vector3(0,0,tz);
+  for(var i=0;i<cols.length;i++){
+    var c=cols[i],o=c.userData;
+    if(gp>0){
+      c.position.lerpVectors(o.p0,target,gp);
+      var k=1-.85*gp;c.scale.set(k,k,1);
+      c.material.opacity=o.o*(1-sm(.82,1,gp));
+    }else{
+      o.fall+=dt*o.sp;
+      var y=o.yb-o.fall;
+      if(y<-13){o.fall-=26;y+=26}
+      if(camZ-o.z<.4)o.z-=L;
+      c.position.set(o.x,y,o.z);
+      c.material.opacity=o.o*(1-sm(9,13,Math.abs(y)))*sm(.9,4.5,camZ-o.z);
+    }
+  }
+
+  for(var p=0;p<ppos.length;p+=3){
+    if(ppos[p+2]>camZ+1)ppos[p+2]-=60;
+  }
+  pts.geometry.attributes.position.needsUpdate=true;
+
+  var wo=sm(15.4,17,t)*(1-sm(19,19.4,t));
+  white.position.set(0,0,tz+.12);
+  var pulse=1+.09*Math.sin(t*13)*sm(15.8,17.5,t);
+  white.scale.setScalar((.8+14*sm(15.4,18.4,t))*pulse);
+  white.material.opacity=wo;
+
+  if(t<19.3)flash.style.opacity=Math.pow(sm(17.2,19.1,t),1.5);
+  else flash.style.opacity=1-sm(19.5,22.6,t);
+
+  if(t>=19.2&&fin.style.display!=='flex'){fin.style.display='flex';$('#c').style.visibility='hidden'}
+  if(t>=19.2){
+    var fo=sm(20,22.4,t);
+    frame.style.opacity=fo;
+    frame.style.transform='scale('+(.94+.06*fo)+')';
+    var co=sm(21.6,23.4,t);
+    cap.style.opacity=co;
+    cap.style.transform='translateY('+(10*(1-co))+'px)';
+  }
+
+  dyaw*=down?1:(1-Math.min(1,dt*.7));
+  dpitch*=down?1:(1-Math.min(1,dt*.7));
+  var ty=clamp(gyaw+dyaw+myaw,-.9,.9),tp=clamp(gpitch+dpitch+mpitch,-.6,.6),e=Math.min(1,dt*4);
+  cy+=(ty-cy)*e;cp+=(tp-cp)*e;
+  cam.rotation.set(cp,cy,0);
+
+  renderer.render(scene,cam);
+}
+
+var needPerm=!!(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function');
+if(!needPerm)window.addEventListener('deviceorientation',onOri);
+window.addEventListener('pointerdown',function(){
+  if(!needPerm)return;needPerm=false;
+  DeviceOrientationEvent.requestPermission().then(function(r){if(r==='granted')window.addEventListener('deviceorientation',onOri)}).catch(function(){});
+});
+
+var fl=(document.fonts&&document.fonts.load)?Promise.all([
+  document.fonts.load('italic 600 80px "Cormorant Garamond"','BACİMİ Bacımı çox sevirəm'),
+  document.fonts.load('italic 700 80px "Cormorant Garamond"','BACİMİ COOOOOXXX')
+]):Promise.resolve();
+
+Promise.race([fl,new Promise(function(r){setTimeout(r,2500)})]).then(function(){
+  build();
+  requestAnimationFrame(function(n){last=n;frameLoop(n)});
+});
+})();
+</script>
+</body>
+</html>
